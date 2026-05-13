@@ -12,6 +12,7 @@ export function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [authError, setAuthError] = useState(false)
   const [verifying, setVerifying] = useState(false)
+  const [shakeKey, setShakeKey] = useState(0)
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -30,6 +31,7 @@ export function AdminPage() {
         .finally(() => setLoading(false))
     } else {
       setAuthError(true)
+      setShakeKey((k) => k + 1)
       setPassword('')
     }
   }
@@ -48,6 +50,7 @@ export function AdminPage() {
     return (
       <div className="min-h-screen bg-[#05050f] relative z-10 flex items-center justify-center px-6">
         <motion.form
+          key={shakeKey}
           onSubmit={handleLogin}
           className="w-full max-w-sm bg-white/[0.03] border border-white/[0.07] backdrop-blur-xl rounded-2xl p-8 flex flex-col gap-5"
           animate={authError ? { x: [0, -12, 12, -8, 8, -4, 4, 0] } : {}}
