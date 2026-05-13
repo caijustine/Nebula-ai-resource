@@ -37,6 +37,7 @@ export function AdminPage() {
   }
 
   const handleDelete = async (id: number) => {
+    if (!window.confirm('Remove this resource? This cannot be undone.')) return
     try {
       await deleteResource(id, adminPassword)
       setResources((prev) => prev.filter((r) => r.id !== id))

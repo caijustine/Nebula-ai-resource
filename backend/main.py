@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
-from database import create_tables, get_session
+from database import get_session
 from models import Resource, ResourceCreate, ResourceRead
 
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
@@ -16,7 +16,6 @@ URL_PATTERN = re.compile(r"^https?://.+")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    create_tables()
     yield
 
 
