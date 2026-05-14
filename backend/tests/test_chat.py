@@ -1,4 +1,5 @@
 # ─── test_chat.py — Tests for the AI chat system prompt builder ───────────────
+import pytest
 from datetime import datetime, timezone
 
 from chat import build_system_prompt
@@ -76,7 +77,6 @@ def test_chat_request_model_valid():
 
 def test_chat_request_model_requires_messages():
     # messages field is required — missing it should raise a validation error
-    import pytest
     from pydantic import ValidationError
     from models import ChatRequest
     with pytest.raises(ValidationError):

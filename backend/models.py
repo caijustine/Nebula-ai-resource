@@ -17,7 +17,7 @@
 #   - Pydantic: validates data types (ensures title is a string, not a number, etc.)
 
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional
 from sqlmodel import Field, SQLModel
 
 
@@ -104,7 +104,7 @@ class ResourceRead(SQLModel):
 # for what was said earlier in the conversation.
 class ChatMessageRequest(SQLModel):
     """One message in a conversation — either from the user or the assistant."""
-    role: str     # "user" or "assistant"
+    role: Literal["user", "assistant"]  # only these two values are valid
     content: str  # the message text
 
 
