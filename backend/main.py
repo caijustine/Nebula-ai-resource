@@ -40,6 +40,31 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 # .+ means "followed by at least one character"
 URL_PATTERN = re.compile(r"^https?://.+")
 
+# The Claude model used for chat responses.
+# Extracted here so it's easy to update in one place if the model changes.
+_CHAT_MODEL = "claude-haiku-4-5-20251001"
+
+# ── Anthropic client ──────────────────────────────────────────────────────────
+# Created once and reused across requests (a "singleton").
+# Using a module-level client avoids opening a new HTTP connection on every
+# chat request. _anthropic_client starts as None and is created on the first
+# chat request (lazy initialization), so startup doesn't fail if the key is unset.
+_anthropic_client: "Anthropic | None" = None
+
+
+def _get_anthropic_client() -> "Anthropic":
+    """Returns the shared Anthropic client, creating it on first use."""
+    global _anthropic_client
+    if _anthropic_client is None:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise HTTPException(
+                status_code=500,
+                detail="ANTHROPIC_API_KEY not configured — add it to .env and restart Docker",
+            )
+        _anthropic_client = Anthropic(api_key=api_key)
+    return _anthropic_client
+
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 # The lifespan context manager runs code at server startup (before `yield`)
@@ -179,16 +204,12 @@ def verify_admin(x_admin_password: str = Header(...)):
 # characters so the SSE format isn't accidentally broken.
 @app.post("/chat")
 def chat_stream(request: ChatRequest, session: Session = Depends(get_session)):
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=500,
-            detail="ANTHROPIC_API_KEY not configured — add it to .env and restart Docker",
-        )
+    client = _get_anthropic_client()  # raises 500 if API key not configured
 
+    # Fetch resources eagerly here (outside generate()) because the database
+    # session may be closed by the time the generator runs.
     resources = session.exec(select(Resource)).all()
     system_prompt = build_system_prompt(list(resources))
-    client = Anthropic(api_key=api_key)
 
     def generate():
         # This is a generator function — `yield` sends one chunk at a time.
@@ -196,7 +217,7 @@ def chat_stream(request: ChatRequest, session: Session = Depends(get_session)):
         # until it's exhausted, sending each yielded string to the browser immediately.
         try:
             with client.messages.stream(
-                model="claude-haiku-4-5-20251001",
+                model=_CHAT_MODEL,
                 max_tokens=1024,
                 system=system_prompt,
                 messages=[
@@ -209,6 +230,10 @@ def chat_stream(request: ChatRequest, session: Session = Depends(get_session)):
                         yield f"data: {json.dumps(text)}\n\n"
             yield f"data: {json.dumps('[DONE]')}\n\n"
         except Exception as e:
+            # NOTE: because the HTTP 200 header has already been sent at this point,
+            # we cannot change the status code to 5xx here. The frontend must
+            # check for [ERROR] frames in the SSE body — checking only the HTTP
+            # status code is not sufficient for detecting mid-stream failures.
             yield f"data: {json.dumps(f'[ERROR] {str(e)}')}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")

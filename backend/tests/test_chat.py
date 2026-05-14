@@ -88,6 +88,7 @@ def test_chat_request_model_requires_messages():
 def test_chat_missing_api_key(client, monkeypatch):
     # If ANTHROPIC_API_KEY is not set, the endpoint must return 500
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr("main._anthropic_client", None)  # reset singleton
     response = client.post(
         "/chat",
         json={"messages": [{"role": "user", "content": "hello"}]},
@@ -99,6 +100,7 @@ def test_chat_missing_api_key(client, monkeypatch):
 def test_chat_returns_event_stream(client, monkeypatch):
     # With a valid (mocked) Anthropic client, the endpoint returns text/event-stream
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr("main._anthropic_client", None)  # reset singleton so the mock is used
 
     mock_stream = MagicMock()
     mock_stream.__enter__ = MagicMock(return_value=mock_stream)
