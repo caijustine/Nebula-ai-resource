@@ -1,6 +1,8 @@
 # ─── test_chat.py — Tests for the AI chat system prompt builder ───────────────
+import os
 import pytest
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 
 from chat import build_system_prompt
 from models import Resource
@@ -81,3 +83,36 @@ def test_chat_request_model_requires_messages():
     from models import ChatRequest
     with pytest.raises(ValidationError):
         ChatRequest()  # no messages field
+
+
+def test_chat_missing_api_key(client, monkeypatch):
+    # If ANTHROPIC_API_KEY is not set, the endpoint must return 500
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    response = client.post(
+        "/chat",
+        json={"messages": [{"role": "user", "content": "hello"}]},
+    )
+    assert response.status_code == 500
+    assert "ANTHROPIC_API_KEY" in response.json()["detail"]
+
+
+def test_chat_returns_event_stream(client, monkeypatch):
+    # With a valid (mocked) Anthropic client, the endpoint returns text/event-stream
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+    mock_stream = MagicMock()
+    mock_stream.__enter__ = MagicMock(return_value=mock_stream)
+    mock_stream.__exit__ = MagicMock(return_value=False)
+    mock_stream.text_stream = iter(["Hello", " world"])
+
+    with patch("main.Anthropic") as MockAnthropic:
+        MockAnthropic.return_value.messages.stream.return_value = mock_stream
+        response = client.post(
+            "/chat",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+        )
+
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers["content-type"]
+    assert "Hello" in response.text
+    assert "[DONE]" in response.text
