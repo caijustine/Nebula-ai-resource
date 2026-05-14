@@ -64,3 +64,20 @@ def test_build_system_prompt_excludes_separator_when_no_description():
     result = build_system_prompt([resource])
     resource_line = next(line for line in result.splitlines() if "nodesc.com" in line)
     assert " — " not in resource_line
+
+
+def test_chat_request_model_valid():
+    # Confirm the request model accepts a valid conversation
+    from models import ChatRequest, ChatMessageRequest
+    req = ChatRequest(messages=[ChatMessageRequest(role="user", content="hello")])
+    assert req.messages[0].role == "user"
+    assert req.messages[0].content == "hello"
+
+
+def test_chat_request_model_requires_messages():
+    # messages field is required — missing it should raise a validation error
+    import pytest
+    from pydantic import ValidationError
+    from models import ChatRequest
+    with pytest.raises(ValidationError):
+        ChatRequest()  # no messages field
