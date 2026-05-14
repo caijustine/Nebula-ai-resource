@@ -34,22 +34,31 @@ export async function streamChat(
   }
 
   if (!res.ok) {
-    onError(new Error(`Server error: ${res.status}`))
+    const body = await res.json().catch(() => null)
+    const detail = (body as any)?.detail ?? `Server error: ${res.status}`
+    onError(new Error(detail))
     return
   }
 
-  const reader = res.body!.getReader()
+  if (!res.body) {
+    onError(new Error('Response has no body'))
+    return
+  }
+  const reader = res.body.getReader()
   const decoder = new TextDecoder()
+
+  let buffer = ''
 
   try {
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
 
-      // decode bytes → string, keeping multi-byte characters intact across chunks
-      const raw = decoder.decode(value, { stream: true })
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split('\n')
+      buffer = parts.pop() ?? ''   // keep the last (possibly incomplete) line for next read
 
-      for (const line of raw.split('\n')) {
+      for (const line of parts) {
         if (!line.startsWith('data: ')) continue
 
         let data: string
