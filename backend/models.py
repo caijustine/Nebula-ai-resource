@@ -18,6 +18,7 @@
 
 from datetime import datetime, timezone
 from typing import List, Literal, Optional
+from pydantic import field_validator
 from sqlmodel import Field, SQLModel
 
 
@@ -105,9 +106,18 @@ class ResourceRead(SQLModel):
 class ChatMessageRequest(SQLModel):
     """One message in a conversation — either from the user or the assistant."""
     role: Literal["user", "assistant"]  # only these two values are valid
-    content: str  # the message text
+    content: str = Field(max_length=10_000)  # cap individual message size
 
 
 class ChatRequest(SQLModel):
     """The full conversation history sent to POST /chat."""
     messages: List[ChatMessageRequest]
+
+    @field_validator("messages")
+    @classmethod
+    def limit_messages(cls, v: list) -> list:
+        if len(v) > 50:
+            raise ValueError("Too many messages in conversation history (max 50)")
+        if len(v) == 0:
+            raise ValueError("messages cannot be empty")
+        return v

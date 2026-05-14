@@ -118,3 +118,5 @@ def test_chat_returns_event_stream(client, monkeypatch):
     assert "text/event-stream" in response.headers["content-type"]
     assert "Hello" in response.text
     assert "[DONE]" in response.text
+    # The frontend depends on JSON-encoded chunks: data: "Hello" not data: Hello
+    assert 'data: "Hello"' in response.text

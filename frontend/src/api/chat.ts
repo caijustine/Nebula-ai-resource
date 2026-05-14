@@ -69,7 +69,7 @@ export async function streamChat(
         }
 
         if (data === '[DONE]') { onDone(); return }
-        if (data.startsWith('[ERROR]')) { onError(new Error(data.slice(8))); return }
+        if (data.startsWith('[ERROR]')) { onError(new Error(data.replace(/^\[ERROR\]\s*/, ''))); return }
         onChunk(data)
       }
     }
