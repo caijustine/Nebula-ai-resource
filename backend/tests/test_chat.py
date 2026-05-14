@@ -54,3 +54,13 @@ def test_build_system_prompt_multiple_resources():
     result = build_system_prompt(resources)
     assert "Resource A" in result
     assert "Resource B" in result
+
+
+def test_build_system_prompt_excludes_separator_when_no_description():
+    # When description is None, the " — " separator must NOT appear on the resource line.
+    # We check only the line that mentions the resource URL, not the whole prompt,
+    # because the personality text itself contains " — " in unrelated places.
+    resource = _make_resource("No Desc Resource", "https://nodesc.com")  # description=None by default
+    result = build_system_prompt([resource])
+    resource_line = next(line for line in result.splitlines() if "nodesc.com" in line)
+    assert " — " not in resource_line

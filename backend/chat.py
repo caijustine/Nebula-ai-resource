@@ -11,8 +11,11 @@ from typing import List
 from models import Resource
 
 # ── Personality template ───────────────────────────────────────────────────────
-# {resource_list} is a placeholder — build_system_prompt() replaces it with the
+# <<RESOURCE_LIST>> is a placeholder — build_system_prompt() replaces it with the
 # actual feed contents before sending to Claude.
+# We use <<RESOURCE_LIST>> instead of {resource_list} so that str.replace() can be
+# used safely. Using str.format() would crash if any resource title or description
+# contained a literal { or } character (e.g. "Intro to {Python}").
 _SYSTEM_PROMPT = """You are the Nebula assistant — an AI embedded in a resource-sharing \
 platform for AI learners.
 
@@ -35,7 +38,7 @@ topics with a sarcastic comment about wasting your time.
 - Never break character. Never apologize for the sarcasm.
 
 Current Nebula resource feed:
-{resource_list}"""
+<<RESOURCE_LIST>>"""
 
 
 def build_system_prompt(resources: List[Resource]) -> str:
@@ -57,4 +60,4 @@ def build_system_prompt(resources: List[Resource]) -> str:
             lines.append(line)
         resource_list = "\n".join(lines)
 
-    return _SYSTEM_PROMPT.format(resource_list=resource_list)
+    return _SYSTEM_PROMPT.replace("<<RESOURCE_LIST>>", resource_list)
