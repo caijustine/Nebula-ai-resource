@@ -5,9 +5,9 @@ A web app for a class to submit and browse helpful resource links, with a Cohere
 ## Stack
 
 - **Frontend** — React 19, TypeScript, Vite, Tailwind CSS, React Router, Framer Motion
-- **Backend** — FastAPI, SQLModel, PostgreSQL, Alembic (migrations)
+- **Backend** — FastAPI, SQLModel, Alembic (migrations); SQLite locally, PostgreSQL in production
 - **AI chat** — Cohere (OpenAI-compatible API), streamed to the client over Server-Sent Events
-- **Infra** — Docker Compose (`db`, `backend`, `frontend` services)
+- **Local dev** — backend runs directly via [uv](https://docs.astral.sh/uv/), no Docker required
 
 ## Features
 
@@ -18,16 +18,31 @@ A web app for a class to submit and browse helpful resource links, with a Cohere
 
 ## Running locally
 
+**Backend** (from `backend/`) — see [`backend/README.md`](backend/README.md) for full details:
+
 ```bash
-cp .env.example .env   # fill in POSTGRES_*, ADMIN_PASSWORD, COHERE_API_KEY, DATABASE_URL, VITE_API_URL
-docker compose up
+uv sync
+uv run alembic upgrade head
+uv run uvicorn main:app --reload --port 8000
 ```
+
+No `.env` needed by default — it falls back to a local SQLite file
+(`backend/local.db`) and an `admin` password. Set `COHERE_API_KEY` as an
+environment variable if you want the `/chat` endpoint to work.
+
+**Frontend** (from `frontend/`):
+
+```bash
+npm install
+npm run dev
+```
+
+Set `VITE_API_URL` in `frontend/.env` if the backend isn't running on
+`http://localhost:8000` (e.g. that port is taken by something else).
 
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:8000
 - Backend health check: http://localhost:8000/health
-
-Editing `.env` requires `docker compose down && docker compose up` to take effect — Docker only reads it at container startup.
 
 ## Project structure
 
@@ -41,7 +56,6 @@ backend/
 frontend/
   src/pages/    # FeedPage, SubmitPage, AdminPage
   src/components/  # ChatPanel, CategoryFilter, etc.
-docker-compose.yml
 ```
 
 ## API
