@@ -86,29 +86,27 @@ def test_chat_request_model_requires_messages():
 
 
 def test_chat_missing_api_key(client, monkeypatch):
-    # If ANTHROPIC_API_KEY is not set, the endpoint must return 500
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.setattr("main._anthropic_client", None)  # reset singleton
+    # If COHERE_API_KEY is not set, the endpoint must return 500
+    monkeypatch.delenv("COHERE_API_KEY", raising=False)
+    monkeypatch.setattr("main._cohere_client", None)  # reset singleton
     response = client.post(
         "/chat",
         json={"messages": [{"role": "user", "content": "hello"}]},
     )
     assert response.status_code == 500
-    assert "ANTHROPIC_API_KEY" in response.json()["detail"]
+    assert "COHERE_API_KEY" in response.json()["detail"]
 
 
 def test_chat_returns_event_stream(client, monkeypatch):
-    # With a valid (mocked) Anthropic client, the endpoint returns text/event-stream
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
-    monkeypatch.setattr("main._anthropic_client", None)  # reset singleton so the mock is used
+    # With a valid (mocked) Cohere client, the endpoint returns text/event-stream
+    monkeypatch.setenv("COHERE_API_KEY", "test-key")
+    monkeypatch.setattr("main._cohere_client", None)  # reset singleton so the mock is used
 
-    mock_stream = MagicMock()
-    mock_stream.__enter__ = MagicMock(return_value=mock_stream)
-    mock_stream.__exit__ = MagicMock(return_value=False)
-    mock_stream.text_stream = iter(["Hello", " world"])
+    mock_chunk = MagicMock()
+    mock_chunk.choices[0].delta.content = "Hello"
 
-    with patch("main.Anthropic") as MockAnthropic:
-        MockAnthropic.return_value.messages.stream.return_value = mock_stream
+    with patch("main.OpenAI") as MockOpenAI:
+        MockOpenAI.return_value.chat.completions.create.return_value = iter([mock_chunk])
         response = client.post(
             "/chat",
             json={"messages": [{"role": "user", "content": "hello"}]},
@@ -118,5 +116,4 @@ def test_chat_returns_event_stream(client, monkeypatch):
     assert "text/event-stream" in response.headers["content-type"]
     assert "Hello" in response.text
     assert "[DONE]" in response.text
-    # The frontend depends on JSON-encoded chunks: data: "Hello" not data: Hello
     assert 'data: "Hello"' in response.text

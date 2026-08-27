@@ -18,7 +18,7 @@ import re
 from contextlib import asynccontextmanager
 from typing import List
 
-from anthropic import Anthropic
+from openai import OpenAI
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -31,8 +31,8 @@ from models import Resource, ResourceCreate, ResourceRead, ChatRequest
 # ── Config ────────────────────────────────────────────────────────────────────
 # Read the admin password from the environment. If it's not set, default to "admin".
 # In production (and in our .env file) this should be a strong secret.
-# IMPORTANT: changing .env requires `docker compose down && docker compose up`
-# to take effect — Docker reads .env only at container startup, not on page refresh.
+# IMPORTANT: changing .env requires restarting the server to take effect —
+# it's only read once, at process startup, not on page refresh.
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 
 # A regular expression (regex) pattern to validate URLs.
@@ -40,39 +40,39 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 # .+ means "followed by at least one character"
 URL_PATTERN = re.compile(r"^https?://.+")
 
-# The Claude model used for chat responses.
-# Extracted here so it's easy to update in one place if the model changes.
-_CHAT_MODEL = "claude-haiku-4-5-20251001"
+# The Gemini model used for chat responses. gemini-2.0-flash is free and fast.
+_CHAT_MODEL = "command-a-03-2025"
 
-# ── Anthropic client ──────────────────────────────────────────────────────────
-# Created once and reused across requests (a "singleton").
-# Using a module-level client avoids opening a new HTTP connection on every
-# chat request. _anthropic_client starts as None and is created on the first
-# chat request (lazy initialization), so startup doesn't fail if the key is unset.
-_anthropic_client: "Anthropic | None" = None
+# ── Cohere client ─────────────────────────────────────────────────────────────
+# Cohere exposes an OpenAI-compatible endpoint so we reuse the OpenAI SDK.
+_cohere_client: "OpenAI | None" = None
 
 
-def _get_anthropic_client() -> "Anthropic":
-    """Returns the shared Anthropic client, creating it on first use."""
-    global _anthropic_client
-    if _anthropic_client is None:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+def _get_cohere_client() -> "OpenAI":
+    """Returns the shared Cohere client, creating it on first use."""
+    global _cohere_client
+    if _cohere_client is None:
+        api_key = os.environ.get("COHERE_API_KEY")
         if not api_key:
             raise HTTPException(
                 status_code=500,
-                detail="ANTHROPIC_API_KEY not configured — add it to .env and restart Docker",
+                detail="COHERE_API_KEY not configured — add it to .env and restart the server",
             )
-        _anthropic_client = Anthropic(api_key=api_key)
-    return _anthropic_client
+        _cohere_client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.cohere.com/compatibility/v1",
+        )
+    return _cohere_client
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 # The lifespan context manager runs code at server startup (before `yield`)
 # and shutdown (after `yield`). We use it for setup/cleanup tasks.
-# Currently empty — database setup is handled by Alembic in start.sh.
+# Currently empty — database setup is handled by running `alembic upgrade head`
+# before starting the server (see README.md).
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yield   # everything before this runs on startup; after runs on shutdown
+    yield  # everything before this runs on startup; after runs on shutdown
 
 
 # ── App instance ──────────────────────────────────────────────────────────────
@@ -96,9 +96,7 @@ app.add_middleware(
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
-# A simple endpoint Docker uses to check if the backend is ready.
-# The docker-compose.yml healthcheck calls this URL every 5 seconds.
-# If it returns 200 OK, Docker marks the container as "healthy".
+# A simple endpoint to confirm the server is up and responding.
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -117,9 +115,7 @@ def health():
 # .all() executes the query and returns all matching rows as a Python list.
 @app.get("/resources", response_model=List[ResourceRead])
 def get_resources(session: Session = Depends(get_session)):
-    return session.exec(
-        select(Resource).order_by(Resource.created_at.desc())
-    ).all()
+    return session.exec(select(Resource).order_by(Resource.created_at.desc())).all()
 
 
 # ── POST /resources — Create a new resource ───────────────────────────────────
@@ -146,9 +142,11 @@ def create_resource(data: ResourceCreate, session: Session = Depends(get_session
             detail="URL must start with http:// or https://",
         )
     resource = Resource(**data.model_dump())
-    session.add(resource)      # stage the new row (not saved yet)
-    session.commit()           # write it to the database permanently
-    session.refresh(resource)  # reload from DB to get the auto-assigned id and created_at
+    session.add(resource)  # stage the new row (not saved yet)
+    session.commit()  # write it to the database permanently
+    session.refresh(
+        resource
+    )  # reload from DB to get the auto-assigned id and created_at
     return resource
 
 
@@ -172,7 +170,7 @@ def delete_resource(
 ):
     if x_admin_password != ADMIN_PASSWORD:
         raise HTTPException(status_code=403, detail="Forbidden")
-    resource = session.get(Resource, resource_id)   # look up by primary key
+    resource = session.get(Resource, resource_id)  # look up by primary key
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
     session.delete(resource)
@@ -204,7 +202,7 @@ def verify_admin(x_admin_password: str = Header(...)):
 # characters so the SSE format isn't accidentally broken.
 @app.post("/chat")
 def chat_stream(request: ChatRequest, session: Session = Depends(get_session)):
-    client = _get_anthropic_client()  # raises 500 if API key not configured
+    client = _get_cohere_client()  # raises 500 if API key not configured
 
     # Fetch resources eagerly here (outside generate()) because the database
     # session may be closed by the time the generator runs.
@@ -216,18 +214,19 @@ def chat_stream(request: ChatRequest, session: Session = Depends(get_session)):
         # FastAPI's StreamingResponse calls next() on this generator repeatedly
         # until it's exhausted, sending each yielded string to the browser immediately.
         try:
-            with client.messages.stream(
+            stream = client.chat.completions.create(
                 model=_CHAT_MODEL,
                 max_tokens=1024,
-                system=system_prompt,
                 messages=[
-                    {"role": m.role, "content": m.content}
-                    for m in request.messages
+                    {"role": "system", "content": system_prompt},
+                    *[{"role": m.role, "content": m.content} for m in request.messages],
                 ],
-            ) as stream:
-                for text in stream.text_stream:
-                    if text:
-                        yield f"data: {json.dumps(text)}\n\n"
+                stream=True,
+            )
+            for chunk in stream:
+                text = chunk.choices[0].delta.content
+                if text:
+                    yield f"data: {json.dumps(text)}\n\n"
             yield f"data: {json.dumps('[DONE]')}\n\n"
         except Exception as e:
             # NOTE: because the HTTP 200 header has already been sent at this point,
