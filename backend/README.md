@@ -31,18 +31,18 @@ You only need to re-run this when a new migration is added.
 ## Start the server
 
 ```bash
-uv run uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 8010
 ```
 
-The API is now running at http://localhost:8000. Check it with:
+The API is now running at http://localhost:8010. Check it with:
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8010/health
 ```
 
-If port 8000 is already in use by something else, pick another port
-(`--port 8001`, etc.) and update `VITE_API_URL` in the frontend's `.env`
-to match.
+Port 8010 is used here because 8000/8001 are occupied by another project on
+this machine — pick whatever free port works for you and update
+`VITE_API_URL` in `frontend/.env` to match (it currently points at 8010).
 
 ## Environment variables (optional)
 
@@ -58,7 +58,7 @@ The app works with zero configuration — it falls back to SQLite and an
 Example:
 
 ```bash
-COHERE_API_KEY=your-key uv run uvicorn main:app --reload --port 8000
+COHERE_API_KEY=your-key uv run uvicorn main:app --reload --port 8010
 ```
 
 ## Run the tests
