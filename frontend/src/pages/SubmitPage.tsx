@@ -80,19 +80,30 @@ export function SubmitPage() {
     `bg-white/[0.05] border rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none transition-all w-full ${
       error
         ? 'border-red-500/50 focus:border-red-400/70 shadow-[0_0_12px_rgba(239,68,68,0.15)]'
-        : 'border-white/10 focus:border-blue-500/50 focus:shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+        : 'border-white/10 focus:border-sky-400/35 focus:shadow-[0_0_12px_rgba(186,230,253,0.10)]'
     }`
 
   return (
-    <div className="min-h-screen bg-[#05050f] relative z-10 flex items-center justify-center px-6 py-28">
+    <div className="min-h-screen relative z-10 flex items-center justify-center px-6 py-28">
       <motion.div
         className="w-full max-w-lg"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {/* Back button */}
+        <motion.button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-white/40 hover:text-fuchsia-300 text-sm mb-6 transition-colors group"
+          whileHover={{ x: -3 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <span className="text-lg group-hover:glow-blue transition-all">←</span>
+          <span>Back to feed</span>
+        </motion.button>
+
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Share a Resource</h1>
+          <h1 className="text-3xl font-bold text-white mb-2 glow-white">Share a Resource</h1>
           <p className="text-white/35 text-sm">Add something valuable to the cosmos</p>
         </div>
 
@@ -103,7 +114,7 @@ export function SubmitPage() {
           {/* Title */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-white/40 uppercase tracking-widest">
-              Title <span className="text-blue-400">*</span>
+              Title <span className="text-sky-300/60">*</span>
             </label>
             <input
               type="text"
@@ -127,7 +138,7 @@ export function SubmitPage() {
           {/* URL */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-white/40 uppercase tracking-widest">
-              URL <span className="text-blue-400">*</span>
+              URL <span className="text-sky-300/60">*</span>
             </label>
             <input
               type="text"
@@ -210,12 +221,20 @@ export function SubmitPage() {
           </div>
 
           {/* Submit button */}
+          {/* Submit button — disabled while the API call is in progress.
+              The pale icy blue star glow matches the rest of the nebula aesthetic. */}
+          {/* Submit button — disabled while the API call is in progress.
+              Nebula purple-pink glow matches the cosmic aesthetic. */}
           <motion.button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full py-3 rounded-xl bg-blue-500/15 border border-blue-500/40 text-blue-300 font-medium text-sm hover:bg-blue-500/25 hover:border-blue-400/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            whileHover={{ scale: submitting ? 1 : 1.02 }}
-            whileTap={{ scale: submitting ? 1 : 0.98 }}
+            className="mt-2 w-full py-3 rounded-xl bg-fuchsia-950/40 border border-fuchsia-500/28 text-fuchsia-200/85 font-medium text-sm hover:bg-fuchsia-900/40 hover:border-fuchsia-400/50 hover:text-fuchsia-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              boxShadow: '0 0 10px rgba(232,121,249,0.30), 0 0 26px rgba(192,132,252,0.16), 0 0 55px rgba(139,92,246,0.08)',
+              textShadow: '0 0 10px rgba(245,183,255,0.70), 0 0 24px rgba(216,148,253,0.38)',
+            }}
+            whileHover={submitting ? {} : { scale: 1.02, boxShadow: '0 0 14px rgba(232,121,249,0.55), 0 0 32px rgba(192,132,252,0.30)' }}
+            whileTap={{ scale: submitting ? 1 : 0.97 }}
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">

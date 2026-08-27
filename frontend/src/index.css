@@ -1,15 +1,125 @@
+/* ─── Tailwind directives ────────────────────────────────────────────────────
+   These three lines pull in Tailwind CSS.
+   @tailwind base    → resets browser defaults (removes margins, sets box-sizing, etc.)
+   @tailwind components → lets you use Tailwind's built-in component classes
+   @tailwind utilities  → gives you every utility class like `text-white`, `flex`, etc.
+   Think of Tailwind as a giant list of pre-written CSS rules you can apply with class names. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Root element styles ────────────────────────────────────────────────────
+   `html` is the outermost element of every webpage — the container for everything.
+   overflow-x: hidden  → hides any content that accidentally sticks out past the right edge
+   background-color    → fallback dark color so the scrollbar track area is never white */
+html {
+  overflow-x: hidden;
+  background-color: #010103;
+}
+
+/* ─── Body styles ─────────────────────────────────────────────────────────────
+   `body` is the visible page area inside `html`.
+   background: radial-gradient → a circular gradient that fades from a very dark navy at the
+     top-center to near-black. This makes the page look like deep space.
+   background-attachment: fixed → the background stays still when you scroll (parallax feel).
+   color: white → all text defaults to white unless we override it.
+   font-family → Inter is a clean modern font; system-ui is a fallback if Inter isn't loaded.
+   -webkit-font-smoothing → makes fonts look sharper on Mac/Safari. */
 body {
-  background-color: #05050f;
+  overflow-x: hidden;
+  background: radial-gradient(ellipse at 50% 0%, #05071a 0%, #020308 50%, #010103 100%);
+  background-attachment: fixed;
   color: white;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar */
+/* ─── Custom scrollbar ────────────────────────────────────────────────────────
+   ::-webkit-scrollbar targets the scrollbar in Chrome/Safari/Edge.
+   We make it narrow (6px), with a dark track so it blends into the space background,
+   and a faint white thumb (the draggable part) so you can still see it. */
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-track { background: #010103; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* ─── Glow text utilities ─────────────────────────────────────────────────────
+   text-shadow adds a blur of color around text — like the letter is emitting light.
+   Multiple layers create depth: a tight bright core + wider soft outer rings.
+   We define reusable classes so we can apply the same glow anywhere with one class name. */
+
+/* Pale icy blue — used on small labels and subtitles */
+.glow-blue {
+  text-shadow:
+    0 0 10px rgba(147, 197, 253, 0.8),
+    0 0 30px rgba(96, 165, 250, 0.4),
+    0 0 60px rgba(59, 130, 246, 0.2);
+}
+
+/* Soft white — used for section headings */
+.glow-white {
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.7),
+    0 0 20px rgba(220, 230, 255, 0.4);
+}
+
+/* ─── Nebula title glow ───────────────────────────────────────────────────────
+   The big "NEBULA" heading has a warm star-like golden glow.
+   The layers spread from a tight bright core (22px) out to a barely-visible cosmic
+   haze (700px). Wide outer layers make the text look like glowing gas — cloud-like.
+   transition: smooth animation when the glow changes (e.g. when a letter lights up). */
+.glow-nebula {
+  transition: text-shadow 0.4s ease;
+  text-shadow:
+    0 0 22px rgba(255, 248, 185, 0.90),
+    0 0 60px rgba(255, 215, 88, 0.62),
+    0 0 120px rgba(240, 172, 42, 0.42),
+    0 0 240px rgba(215, 143, 22, 0.22),
+    0 0 450px rgba(175, 108, 12, 0.11),
+    0 0 700px rgba(130, 75,  8, 0.05);
+}
+
+/* ─── Nebula wave glow ────────────────────────────────────────────────────────
+   A glow pulse sweeps across each letter in sequence.
+   Adding `.nebula-wave-active` to the h1 triggers staggered animations on each
+   child span — the delay increases by 0.25s per letter so the glow travels
+   left → right like a wave. JavaScript re-triggers the class every 90 seconds. */
+.nebula-letter {
+  display: inline-block;
+}
+
+@keyframes nebula-letter-wave {
+  0%, 100% { text-shadow: none; }
+  50% {
+    text-shadow:
+      0 0 10px rgba(255, 252, 160, 1),
+      0 0 26px rgba(255, 218, 72, 0.92),
+      0 0 52px rgba(248, 178, 35, 0.70),
+      0 0 95px rgba(218, 145, 18, 0.40),
+      0 0 170px rgba(175, 110, 10, 0.18);
+  }
+}
+
+.nebula-wave-active .nebula-letter:nth-child(1) { animation: nebula-letter-wave 1.1s ease-in-out 0.00s; }
+.nebula-wave-active .nebula-letter:nth-child(2) { animation: nebula-letter-wave 1.1s ease-in-out 0.25s; }
+.nebula-wave-active .nebula-letter:nth-child(3) { animation: nebula-letter-wave 1.1s ease-in-out 0.50s; }
+.nebula-wave-active .nebula-letter:nth-child(4) { animation: nebula-letter-wave 1.1s ease-in-out 0.75s; }
+.nebula-wave-active .nebula-letter:nth-child(5) { animation: nebula-letter-wave 1.1s ease-in-out 1.00s; }
+.nebula-wave-active .nebula-letter:nth-child(6) { animation: nebula-letter-wave 1.1s ease-in-out 1.25s; }
+
+/* ─── Click ripple animation ─────────────────────────────────────────────────
+   @keyframes defines a named animation sequence.
+   ripple-out: starts as a tiny invisible dot (scale 0), expands to full size while
+   fading out. This creates the "ring spreading from click point" effect.
+   The .ripple class is applied by ClickRipple.tsx to DOM elements it creates. */
+@keyframes ripple-out {
+  0%   { transform: scale(0); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 0; }
+}
+
+.ripple {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ripple-out 0.6s ease-out forwards;
+  z-index: 9999;
+}

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { deleteResource, fetchResources, verifyAdmin } from '../api/resources'
 import { ResourceCard } from '../components/ResourceCard'
-import { SkeletonCard } from '../components/SkeletonCard'
 import type { Resource } from '../types/resource'
 
 export function AdminPage() {
@@ -46,6 +45,54 @@ export function AdminPage() {
       toast.error('Failed to delete resource')
     }
   }
+
+  const GalaxyLoader = ({ label }: { label: string }) => (
+    <div className="min-h-screen bg-[#05050f] relative z-10 flex flex-col items-center justify-center">
+      <div className="relative w-44 h-44" style={{ perspective: '500px' }}>
+        {[
+          { size: 176, color: '139,92,246', rotX: 72, dur: 13, rev: false },
+          { size: 118, color: '96,165,250',  rotX: 54, dur: 8.5, rev: true },
+          { size: 66,  color: '232,121,249', rotX: 33, dur: 5,   rev: false },
+        ].map(({ size, color, rotX, dur, rev }, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              width: size, height: size,
+              top: '50%', left: '50%',
+              marginTop: -size / 2, marginLeft: -size / 2,
+              transform: `rotateX(${rotX}deg)`,
+            }}
+          >
+            <motion.div
+              className="w-full h-full rounded-full border-2"
+              style={{ borderColor: `rgba(${color}, 0.45)` }}
+              animate={{ rotate: rev ? -360 : 360 }}
+              transition={{ duration: dur, repeat: Infinity, ease: 'linear' }}
+            />
+          </div>
+        ))}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <motion.div
+            className="w-3 h-3 rounded-full bg-white"
+            style={{ boxShadow: '0 0 14px white, 0 0 32px rgba(139,92,246,0.9), 0 0 64px rgba(96,165,250,0.5)' }}
+            animate={{ scale: [1, 1.6, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </div>
+      </div>
+      <motion.p
+        className="mt-10 text-white/20 text-[11px] tracking-[0.4em] uppercase"
+        animate={{ opacity: [0.2, 0.6, 0.2] }}
+        transition={{ duration: 2.5, repeat: Infinity }}
+      >
+        {label}
+      </motion.p>
+    </div>
+  )
+
+  if (verifying) return <GalaxyLoader label="Verifying" />
+  if (authed && loading) return <GalaxyLoader label="Loading" />
 
   if (!authed) {
     return (
@@ -108,13 +155,7 @@ export function AdminPage() {
           <span className="text-xs text-white/25">{resources.length} total</span>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        ) : resources.length === 0 ? (
+        {resources.length === 0 ? (
           <p className="text-white/30 text-center py-20">No resources yet.</p>
         ) : (
           <motion.div

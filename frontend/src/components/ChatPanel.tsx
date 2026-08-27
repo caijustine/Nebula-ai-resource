@@ -33,10 +33,10 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
     /* motion.div with x: '100%' → x: 0 slides the panel in from the right.
        type: 'spring' gives it a natural elastic feel rather than a linear slide. */
     <motion.div
-      className="fixed top-0 right-0 h-full w-[380px] max-w-[100vw] z-40 flex flex-col bg-[#06060f]/97 backdrop-blur-2xl border-l border-white/[0.07] shadow-[-8px_0_40px_rgba(0,0,0,0.6)]"
-      initial={{ x: '100%' }}
+      className="fixed top-16 left-0 h-[calc(100vh-4rem)] w-[380px] max-w-[100vw] z-40 flex flex-col bg-[#06060f]/97 backdrop-blur-2xl border-r border-white/[0.07] shadow-[8px_0_40px_rgba(0,0,0,0.6)]"
+      initial={{ x: '-100%' }}
       animate={{ x: 0 }}
-      exit={{ x: '100%' }}
+      exit={{ x: '-100%' }}
       transition={{ type: 'spring', damping: 30, stiffness: 300 }}
     >
       {/* ── Header ────────────────────────────────────────────────────────── */}
