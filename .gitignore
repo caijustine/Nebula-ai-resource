@@ -12,8 +12,5 @@ __pycache__/
 node_modules/
 dist/
 
-# Docker volumes
-postgres_data/
-
 # macOS
 .DS_Store
