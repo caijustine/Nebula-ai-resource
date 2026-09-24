@@ -16,17 +16,27 @@ import json
 import os
 import re
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import List
 
+from dotenv import load_dotenv
 from openai import OpenAI
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
-from chat import build_system_prompt
-from database import get_session
-from models import Resource, ResourceCreate, ResourceRead, ChatRequest
+# Load environment variables from .env files BEFORE importing our own modules,
+# because database.py reads DATABASE_URL at import time. backend/.env is loaded
+# first, then the repo-root .env fills in anything still missing. Variables
+# already exported in the shell always win (load_dotenv never overrides them).
+_BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(_BACKEND_DIR / ".env")
+load_dotenv(_BACKEND_DIR.parent / ".env")
+
+from chat import build_system_prompt  # noqa: E402
+from database import get_session  # noqa: E402
+from models import Resource, ResourceCreate, ResourceRead, ChatRequest  # noqa: E402
 
 # ── Config ────────────────────────────────────────────────────────────────────
 # Read the admin password from the environment. If it's not set, default to "admin".
@@ -40,7 +50,7 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 # .+ means "followed by at least one character"
 URL_PATTERN = re.compile(r"^https?://.+")
 
-# The Gemini model used for chat responses. gemini-2.0-flash is free and fast.
+# The Cohere model used for chat responses (served via Cohere's OpenAI-compatible API).
 _CHAT_MODEL = "command-a-03-2025"
 
 # ── Cohere client ─────────────────────────────────────────────────────────────

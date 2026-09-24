@@ -47,7 +47,9 @@ this machine — pick whatever free port works for you and update
 ## Environment variables (optional)
 
 The app works with zero configuration — it falls back to SQLite and an
-`admin` password. To customize, export these before running the server:
+`admin` password. To customize, put these in a `.env` file (in `backend/` or
+the repo root — it's loaded automatically on startup) or export them in your
+shell. Shell exports take precedence over `.env`:
 
 | Variable          | Default                   | Purpose                                  |
 |--------------------|---------------------------|-------------------------------------------|

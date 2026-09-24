@@ -10,13 +10,20 @@
 # then disappears. This means tests are isolated (one test can't affect another)
 # and fast (no network or disk I/O).
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlmodel import SQLModel, Session, create_engine
-from sqlmodel.pool import StaticPool
+import os
 
-from main import app
-from database import get_session
+# Pin test config before main.py is imported. main.py loads .env files, but
+# load_dotenv never overrides variables that are already set, so these win
+# and the tests don't depend on whatever is in your local .env.
+os.environ["ADMIN_PASSWORD"] = "admin"
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlmodel import SQLModel, Session, create_engine  # noqa: E402
+from sqlmodel.pool import StaticPool  # noqa: E402
+
+from main import app  # noqa: E402
+from database import get_session  # noqa: E402
 
 
 # ── Session fixture ───────────────────────────────────────────────────────────

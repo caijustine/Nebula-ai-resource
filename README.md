@@ -23,12 +23,14 @@ A web app for a class to submit and browse helpful resource links, with a Cohere
 ```bash
 uv sync
 uv run alembic upgrade head
-uv run uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --reload --port 8010
 ```
 
 No `.env` needed by default — it falls back to a local SQLite file
-(`backend/local.db`) and an `admin` password. Set `COHERE_API_KEY` as an
-environment variable if you want the `/chat` endpoint to work.
+(`backend/local.db`) and an `admin` password. To configure it, copy
+`.env.example` to `.env` (repo root or `backend/`) and fill it in — the backend
+loads it automatically on startup. Set `COHERE_API_KEY` there if you want the
+`/chat` endpoint to work. Restart the server after editing `.env`.
 
 **Frontend** (from `frontend/`):
 
@@ -37,12 +39,13 @@ npm install
 npm run dev
 ```
 
-Set `VITE_API_URL` in `frontend/.env` if the backend isn't running on
-`http://localhost:8000` (e.g. that port is taken by something else).
+The frontend reads `VITE_API_URL` from `frontend/.env` (defaults to
+`http://localhost:8000` if unset). Point it at the backend port —
+`http://localhost:8010` with the command above.
 
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Backend health check: http://localhost:8000/health
+- Backend API: http://localhost:8010
+- Backend health check: http://localhost:8010/health
 
 ## Project structure
 

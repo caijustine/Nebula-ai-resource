@@ -3,6 +3,7 @@ import sys
 from logging.config import fileConfig
 
 from alembic import context
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
@@ -12,6 +13,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from models import Resource  # noqa: F401 — import registers the table
 
 config = context.config
+
+# Load .env files the same way main.py does (backend/.env, then repo-root .env)
+_BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(_BACKEND_DIR, ".env"))
+load_dotenv(os.path.join(os.path.dirname(_BACKEND_DIR), ".env"))
 
 # Read DATABASE_URL from the environment and inject it into Alembic's config
 config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL", "sqlite:///./local.db"))
