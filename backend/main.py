@@ -95,11 +95,16 @@ app = FastAPI(lifespan=lifespan)
 # CORS = Cross-Origin Resource Sharing. By default, browsers BLOCK requests from
 # one domain to another (e.g. localhost:5173 → localhost:8000) as a security measure.
 # This middleware tells the browser "yes, it's okay for the frontend to call this API."
-# allow_origins=["*"] means ANY origin is allowed — fine for development,
-# but in production you'd restrict this to your specific frontend URL.
+# ALLOWED_ORIGINS is a comma-separated list of frontend URLs allowed to call the
+# API (e.g. "https://nebula.cailinjustine.dev"). If it's unset, ANY origin is
+# allowed ("*") — fine for local development, but always set it in production.
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

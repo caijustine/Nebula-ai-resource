@@ -1,0 +1,24 @@
+# Render Blueprint — deploys the FastAPI backend.
+# In Render: New → Blueprint → pick this repo. Secrets marked `sync: false`
+# are entered in the Render dashboard, never committed here.
+services:
+  - type: web
+    name: nebula-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install uv && uv sync --frozen
+    # Apply any pending database migrations, then start the server.
+    startCommand: uv run alembic upgrade head && uv run uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ALLOWED_ORIGINS
+        value: https://nebula.cailinjustine.dev
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false

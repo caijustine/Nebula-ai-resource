@@ -20,7 +20,12 @@ load_dotenv(os.path.join(_BACKEND_DIR, ".env"))
 load_dotenv(os.path.join(os.path.dirname(_BACKEND_DIR), ".env"))
 
 # Read DATABASE_URL from the environment and inject it into Alembic's config
-config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL", "sqlite:///./local.db"))
+_db_url = os.environ.get("DATABASE_URL", "sqlite:///./local.db")
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+# "%" must be escaped as "%%" because Alembic's config uses Python's
+# ConfigParser, which treats "%" as interpolation (breaks encoded passwords).
+config.set_main_option("sqlalchemy.url", _db_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -47,6 +47,24 @@ The frontend reads `VITE_API_URL` from `frontend/.env` (defaults to
 - Backend API: http://localhost:8010
 - Backend health check: http://localhost:8010/health
 
+## Deployment
+
+Live at **https://nebula.cailinjustine.dev**.
+
+| Piece | Host | Address |
+|---|---|---|
+| Frontend | Vercel (root directory `frontend/`) | `nebula.cailinjustine.dev` |
+| Backend | Render, via [`render.yaml`](render.yaml) | `nebula-api.cailinjustine.dev` |
+| Database | Supabase Postgres | set as `DATABASE_URL` on Render |
+
+DNS for both subdomains is managed in Cloudflare (CNAME records, DNS only).
+Pushing to `main` redeploys both. Render runs `alembic upgrade head` on every
+start, so new migrations apply automatically.
+
+Production environment variables:
+- **Render:** `DATABASE_URL`, `ADMIN_PASSWORD`, `COHERE_API_KEY`, `ALLOWED_ORIGINS`
+- **Vercel:** `VITE_API_URL=https://nebula-api.cailinjustine.dev`
+
 ## Project structure
 
 ```

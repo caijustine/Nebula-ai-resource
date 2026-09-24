@@ -19,6 +19,11 @@ from sqlmodel import create_engine, Session, SQLModel
 # SQLite URL format:     sqlite:///./filename.db  (3 slashes = relative path)
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./local.db")
 
+# Some hosts hand out URLs starting with "postgres://", which SQLAlchemy no
+# longer accepts — it requires the full "postgresql://" scheme.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # ── Engine ────────────────────────────────────────────────────────────────────
 # create_engine() opens the connection to the database. This happens ONCE when
 # the server starts, not on every request — maintaining a persistent connection
@@ -26,8 +31,14 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./local.db")
 #
 # echo=True makes SQLAlchemy print every SQL query it runs to the terminal.
 # This is great for learning — you can see exactly what SQL gets generated
-# from your Python code. Turn it off in production to reduce log noise.
-engine = create_engine(DATABASE_URL, echo=True)
+# from your Python code. It's off unless SQL_ECHO=1, to keep production logs quiet.
+# pool_pre_ping checks a connection is still alive before using it, so the app
+# recovers if the hosted database drops idle connections.
+engine = create_engine(
+    DATABASE_URL,
+    echo=os.environ.get("SQL_ECHO") == "1",
+    pool_pre_ping=True,
+)
 
 
 # ── Session provider (dependency) ─────────────────────────────────────────────
