@@ -14,3 +14,6 @@ dist/
 
 # macOS
 .DS_Store
+
+# private local notes — never commit
+DEPLOYMENT_NOTES.md
